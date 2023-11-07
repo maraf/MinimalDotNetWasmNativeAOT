@@ -5563,6 +5563,51 @@ function dbg(text) {
   function _abort() {
       abort('native code called abort()');
     }
+  function _dotnet_browser_entropy(buffer, bufferLength) {
+          // check that we have crypto available
+          let cryptoAvailable = typeof crypto === 'object' && typeof crypto['getRandomValues'] === 'function';
+  
+          // TODO-LLVM: Can we upstream this? Mono has this code in "polyfills.ts", part of the runtime startup.
+          if (ENVIRONMENT_IS_NODE && !cryptoAvailable)
+          {
+              if (!globalThis.crypto) {
+                  globalThis.crypto = {};
+              }
+              if (!globalThis.crypto.getRandomValues) {
+                  let nodeCrypto = undefined;
+                  try {
+                      nodeCrypto = require("node:crypto");
+                  } catch {
+                      // Noop, error throwing polyfill provided bellow
+                  }
+  
+                  if (!nodeCrypto) {
+                      globalThis.crypto.getRandomValues = function () {
+                          throw new Error("Using node without crypto support. To enable current operation, either provide polyfill for 'globalThis.crypto.getRandomValues' or enable 'node:crypto' module.");
+                      };
+                  } else if (nodeCrypto.webcrypto) {
+                      globalThis.crypto = nodeCrypto.webcrypto;
+                  } else if (nodeCrypto.randomBytes) {
+                      globalThis.crypto.getRandomValues = function (buffer) {
+                          if (buffer) {
+                              buffer.set(nodeCrypto.randomBytes(buffer.length));
+                          }
+                      };
+                  }
+  
+                  cryptoAvailable = true;
+              }
+          }
+  
+          if (cryptoAvailable) {
+              DOTNETENTROPY.getBatchedRandomValues(buffer, bufferLength)
+              return 0;
+          } else {
+              // we couldn't find a proper implementation, as Math.random() is not suitable
+              // instead of aborting here we will return and let managed code handle the message
+              return -1;
+          }
+      }
 
   var dlopenMissingError =  'To use dlopen, you need enable dynamic linking, see https://github.com/emscripten-core/emscripten/wiki/Linking';
   function _dlopen(handle) {
@@ -5577,6 +5622,134 @@ function dbg(text) {
   function _emscripten_date_now() {
       return Date.now();
     }
+      /** @param {number=} flags */
+      function _emscripten_get_callstack_js(flags) {
+          var callstack = jsStackTrace();
+      
+          // Find the symbols in the callstack that corresponds to the functions that
+          // report callstack information, and remove everything up to these from the
+          // output.
+          var iThisFunc = callstack.lastIndexOf('_emscripten_log');
+          var iThisFunc2 = callstack.lastIndexOf('_emscripten_get_callstack');
+          var iNextLine = callstack.indexOf('\n', Math.max(iThisFunc, iThisFunc2))+1;
+          callstack = callstack.slice(iNextLine);
+      
+          if (flags & 32) {
+            warnOnce('EM_LOG_DEMANGLE is deprecated; ignoring');
+          }
+      
+          // If user requested to see the original source stack, but no source map
+          // information is available, just fall back to showing the JS stack.
+          if (flags & 8 && typeof emscripten_source_map == 'undefined') {
+            warnOnce('Source map information is not available, emscripten_log with EM_LOG_C_STACK will be ignored. Build with "--pre-js $EMSCRIPTEN/src/emscripten-source-map.min.js" linker flag to add source map loading to code.');
+            flags ^= 8;
+            flags |= 16;
+          }
+      
+          var stack_args = null;
+          if (flags & 128) {
+            // To get the actual parameters to the functions, traverse the stack via
+            // the unfortunately deprecated 'arguments.callee' method, if it works:
+            stack_args = traverseStack(arguments);
+            while (stack_args[1].includes('_emscripten_'))
+              stack_args = traverseStack(stack_args[0]);
+          }
+      
+          // Process all lines:
+          var lines = callstack.split('\n');
+          callstack = '';
+          // New FF30 with column info: extract components of form:
+          // '       Object._main@http://server.com:4324:12'
+          var newFirefoxRe = new RegExp('\\s*(.*?)@(.*?):([0-9]+):([0-9]+)');
+          // Old FF without column info: extract components of form:
+          // '       Object._main@http://server.com:4324'
+          var firefoxRe = new RegExp('\\s*(.*?)@(.*):(.*)(:(.*))?');
+          // Extract components of form:
+          // '    at Object._main (http://server.com/file.html:4324:12)'
+          var chromeRe = new RegExp('\\s*at (.*?) \\\((.*):(.*):(.*)\\\)');
+      
+          for (var l in lines) {
+            var line = lines[l];
+      
+            var symbolName = '';
+            var file = '';
+            var lineno = 0;
+            var column = 0;
+      
+            var parts = chromeRe.exec(line);
+            if (parts && parts.length == 5) {
+              symbolName = parts[1];
+              file = parts[2];
+              lineno = parts[3];
+              column = parts[4];
+            } else {
+              parts = newFirefoxRe.exec(line);
+              if (!parts) parts = firefoxRe.exec(line);
+              if (parts && parts.length >= 4) {
+                symbolName = parts[1];
+                file = parts[2];
+                lineno = parts[3];
+                // Old Firefox doesn't carry column information, but in new FF30, it
+                // is present. See https://bugzilla.mozilla.org/show_bug.cgi?id=762556
+                column = parts[4]|0;
+              } else {
+                // Was not able to extract this line for demangling/sourcemapping
+                // purposes. Output it as-is.
+                callstack += line + '\n';
+                continue;
+              }
+            }
+      
+            var haveSourceMap = false;
+      
+            if (flags & 8) {
+              var orig = emscripten_source_map.originalPositionFor({line: lineno, column: column});
+              haveSourceMap = (orig && orig.source);
+              if (haveSourceMap) {
+                if (flags & 64) {
+                  orig.source = orig.source.substring(orig.source.replace(/\\/g, "/").lastIndexOf('/')+1);
+                }
+                callstack += '    at ' + symbolName + ' (' + orig.source + ':' + orig.line + ':' + orig.column + ')\n';
+              }
+            }
+            if ((flags & 16) || !haveSourceMap) {
+              if (flags & 64) {
+                file = file.substring(file.replace(/\\/g, "/").lastIndexOf('/')+1);
+              }
+              callstack += (haveSourceMap ? ('     = ' + symbolName) : ('    at '+ symbolName)) + ' (' + file + ':' + lineno + ':' + column + ')\n';
+            }
+      
+            // If we are still keeping track with the callstack by traversing via
+            // 'arguments.callee', print the function parameters as well.
+            if (flags & 128 && stack_args[0]) {
+              if (stack_args[1] == symbolName && stack_args[2].length > 0) {
+                callstack = callstack.replace(/\s+$/, '');
+                callstack += ' with values: ' + stack_args[1] + stack_args[2] + '\n';
+              }
+              stack_args = traverseStack(stack_args[0]);
+            }
+          }
+          // Trim extra whitespace at the end of the output.
+          callstack = callstack.replace(/\s+$/, '');
+          return callstack;
+        }
+      function _emscripten_get_callstack(flags, str, maxbytes) {
+          // Use explicit calls to from64 rather then using the __sig
+          // magic here.  This is because the __sig wrapper uses arrow function
+          // notation which causes the inner call to traverseStack to fail.
+          ;
+          var callstack = _emscripten_get_callstack_js(flags);
+          // User can query the required amount of bytes to hold the callstack.
+          if (!str || maxbytes <= 0) {
+            return lengthBytesUTF8(callstack)+1;
+          }
+          // Output callstack string as C string to HEAP.
+          var bytesWrittenExcludingNull = stringToUTF8(callstack, str, maxbytes);
+      
+          // Return number of bytes written, including null.
+          return bytesWrittenExcludingNull+1;
+        }
+    
 
   function getHeapMax() {
       // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
@@ -7324,9 +7497,11 @@ var wasmImports = {
   "_munmap_js": __munmap_js,
   "_tzset_js": __tzset_js,
   "abort": _abort,
+  "dotnet_browser_entropy": _dotnet_browser_entropy,
   "dlopen": _dlopen,
   "emscripten_console_error": _emscripten_console_error,
   "emscripten_date_now": _emscripten_date_now,
+  "emscripten_get_callstack": _emscripten_get_callstack,
   "emscripten_get_heap_max": _emscripten_get_heap_max,
   "emscripten_get_now": _emscripten_get_now,
   "emscripten_get_now_res": _emscripten_get_now_res,
