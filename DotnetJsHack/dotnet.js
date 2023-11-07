@@ -1751,8 +1751,8 @@ function mono_exit(exit_code, reason) {
             }
             logOnExit(exit_code, reason);
             appendElementOnExit(exit_code);
-            if (runtimeHelpers.jiterpreter_dump_stats)
-                runtimeHelpers.jiterpreter_dump_stats(false);
+            // if (runtimeHelpers.jiterpreter_dump_stats)
+            //     runtimeHelpers.jiterpreter_dump_stats(false);
             if (exit_code === 0 && ((_a = loaderHelpers.config) === null || _a === void 0 ? void 0 : _a.interopCleanupOnExit)) {
                 runtimeHelpers.forceDisposeProxies(true, true);
             }
@@ -2278,8 +2278,9 @@ class HostBuilder {
             if (!this.instance) {
                 await this.create();
             }
-            if (!(emscriptenModule.config.mainAssemblyName)) mono_assert(false, "Null moduleConfig.config.mainAssemblyName"); // inlined mono_assert condition
-            return this.instance.runMainAndExit(emscriptenModule.config.mainAssemblyName);
+            // if (!(emscriptenModule.config.mainAssemblyName)) mono_assert(false, "Null moduleConfig.config.mainAssemblyName"); // inlined mono_assert condition
+            // return this.instance.runMainAndExit(emscriptenModule.config.mainAssemblyName);
+            emscriptenModule["callMain"](monoConfig.applicationArguments);
         }
         catch (err) {
             mono_exit(1, err);

@@ -18305,7 +18305,7 @@ async function onRuntimeInitializedAsync(userOnRuntimeInitialized) {
             await mono_wasm_init_threads();
         }
         bindings_init();
-        jiterpreter_allocate_tables(Module);
+        // jiterpreter_allocate_tables(Module);
         runtimeHelpers.runtimeReady = true;
         if (ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER) {
             Module.runtimeKeepalivePush();
@@ -18462,7 +18462,7 @@ function mono_wasm_set_runtime_options(options) {
         Module.setValue(argv + (aindex * 4), cwraps.mono_wasm_strdup(option), "i32");
         aindex += 1;
     }
-    cwraps.mono_wasm_parse_runtime_options(options.length, argv);
+    // cwraps.mono_wasm_parse_runtime_options(options.length, argv);
 }
 async function instantiate_wasm_module(imports, successCallback) {
     // this is called so early that even Module exports like addRunDependency don't exist yet
@@ -18522,13 +18522,13 @@ async function mono_wasm_before_memory_snapshot() {
         // all things below are loaded from the snapshot
         return;
     }
-    for (const k in runtimeHelpers.config.environmentVariables) {
-        const v = runtimeHelpers.config.environmentVariables[k];
-        if (typeof (v) === "string")
-            mono_wasm_setenv(k, v);
-        else
-            throw new Error(`Expected environment variable '${k}' to be a string but it was ${typeof v}: '${v}'`);
-    }
+    // for (const k in runtimeHelpers.config.environmentVariables) {
+    //     const v = runtimeHelpers.config.environmentVariables[k];
+    //     if (typeof (v) === "string")
+    //         mono_wasm_setenv(k, v);
+    //     else
+    //         throw new Error(`Expected environment variable '${k}' to be a string but it was ${typeof v}: '${v}'`);
+    // }
     if (runtimeHelpers.config.runtimeOptions)
         mono_wasm_set_runtime_options(runtimeHelpers.config.runtimeOptions);
     if (runtimeHelpers.config.aotProfilerOptions)
@@ -18563,7 +18563,7 @@ function mono_wasm_load_runtime(unused, debugLevel) {
                 debugLevel = 0 + debugLevel;
             }
         }
-        cwraps.mono_wasm_load_runtime(unused || "unused", debugLevel);
+        // cwraps.mono_wasm_load_runtime(unused || "unused", debugLevel);
         endMeasure(mark, "mono.loadRuntime" /* MeasuredBlock.loadRuntime */);
     }
     catch (err) {
@@ -18579,16 +18579,16 @@ function bindings_init() {
     mono_log_debug("bindings_init");
     runtimeHelpers.mono_wasm_bindings_is_ready = true;
     try {
-        const mark = startMeasure();
-        strings_init();
-        init_managed_exports();
-        if (WasmEnableLegacyJsInterop && !linkerDisableLegacyJsInterop && !ENVIRONMENT_IS_PTHREAD) {
-            init_legacy_exports();
-        }
-        initialize_marshalers_to_js();
-        initialize_marshalers_to_cs();
-        runtimeHelpers._i52_error_scratch_buffer = Module._malloc(4);
-        endMeasure(mark, "mono.bindingsInit" /* MeasuredBlock.bindingsInit */);
+        // const mark = startMeasure();
+        // strings_init();
+        // init_managed_exports();
+        // if (WasmEnableLegacyJsInterop && !linkerDisableLegacyJsInterop && !ENVIRONMENT_IS_PTHREAD) {
+        //     init_legacy_exports();
+        // }
+        // initialize_marshalers_to_js();
+        // initialize_marshalers_to_cs();
+        // runtimeHelpers._i52_error_scratch_buffer = Module._malloc(4);
+        // endMeasure(mark, "mono.bindingsInit" /* MeasuredBlock.bindingsInit */);
     }
     catch (err) {
         mono_log_error("Error in bindings_init", err);

@@ -5563,6 +5563,31 @@ function dbg(text) {
   function _abort() {
       abort('native code called abort()');
     }
+
+  var DOTNETENTROPY = {getBatchedRandomValues:function (buffer, bufferLength) {
+              // batchedQuotaMax is the max number of bytes as specified by the api spec.
+              // If the byteLength of array is greater than 65536, throw a QuotaExceededError and terminate the algorithm.
+              // https://www.w3.org/TR/WebCryptoAPI/#Crypto-method-getRandomValues
+              const batchedQuotaMax = 65536;
+  
+              // Chrome doesn't want SharedArrayBuffer to be passed to crypto APIs
+              const needTempBuf = typeof SharedArrayBuffer !== 'undefined' && Module.HEAPU8.buffer instanceof SharedArrayBuffer;
+              // if we need a temporary buffer, make one that is big enough and write into it from the beginning
+              // otherwise, use the wasm instance memory and write at the given 'buffer' pointer offset.
+              const buf = needTempBuf ? new ArrayBuffer(bufferLength) : Module.HEAPU8.buffer;
+              const offset = needTempBuf ? 0 : buffer;
+              // for modern web browsers
+              // map the work array to the memory buffer passed with the length
+              for (let i = 0; i < bufferLength; i += batchedQuotaMax) {
+                  const view = new Uint8Array(buf, offset + i, Math.min(bufferLength - i, batchedQuotaMax));
+                  crypto.getRandomValues(view)
+              }
+              if (needTempBuf) {
+                  // copy data out of the temporary buffer into the wasm instance memory
+                  const heapView = new Uint8Array(Module.HEAPU8.buffer, buffer, bufferLength);
+                  heapView.set(new Uint8Array(buf));
+              }
+          }};
   function _dotnet_browser_entropy(buffer, bufferLength) {
           // check that we have crypto available
           let cryptoAvailable = typeof crypto === 'object' && typeof crypto['getRandomValues'] === 'function';
@@ -7201,6 +7226,12 @@ function dbg(text) {
       runtimeKeepaliveCounter -= 1;
     }
 
+  function allocateUTF8OnStack(str) {
+      var size = lengthBytesUTF8(str) + 1;
+      var ret = stackAlloc(size);
+      stringToUTF8Array(str, HEAP8, ret, size);
+      return ret;
+    }
 
   var FSNode = /** @constructor */ function(parent, name, mode, rdev) {
     if (!parent) {
@@ -7580,6 +7611,8 @@ var _mono_wasm_add_assembly = Module["_mono_wasm_add_assembly"] = createExportWr
 var _free = Module["_free"] = createExportWrapper("free");
 /** @type {function(...*):?} */
 var _mono_wasm_add_satellite_assembly = Module["_mono_wasm_add_satellite_assembly"] = createExportWrapper("mono_wasm_add_satellite_assembly");
+/** @type {function(...*):?} */
+var _main = Module["_main"] = createExportWrapper("__main_argc_argv");
 /** @type {function(...*):?} */
 var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 /** @type {function(...*):?} */
@@ -8036,6 +8069,7 @@ Module["FS_createPreloadedFile"] = FS.createPreloadedFile;
 Module["FS_createLazyFile"] = FS.createLazyFile;
 Module["FS_createDevice"] = FS.createDevice;
 Module["FS_unlink"] = FS.unlink;
+Module["callMain"] = callMain;
 Module["out"] = out;
 Module["err"] = err;
 Module["abort"] = abort;
@@ -8295,6 +8329,38 @@ dependenciesFulfilled = function runCaller() {
   if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
 };
 
+function callMain(args) {
+  assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
+  assert(__ATPRERUN__.length == 0, 'cannot call main when preRun functions remain to be called');
+
+  var entryFunction = Module['_main'];
+
+  args = args || [];
+  args.unshift(thisProgram);
+
+  var argc = args.length;
+  var argv = stackAlloc((argc + 1) * 4);
+  var argv_ptr = argv >> 2;
+  args.forEach((arg) => {
+    HEAP32[argv_ptr++] = allocateUTF8OnStack(arg);
+  });
+  HEAP32[argv_ptr] = 0;
+
+  try {
+
+    var ret = entryFunction(argc, argv);
+
+    // In PROXY_TO_PTHREAD builds, we should never exit the runtime below, as
+    // execution is asynchronously handed off to a pthread.
+    // if we're not running an evented main loop, it's time to exit
+    exitJS(ret, /* implicit = */ true);
+    return ret;
+  }
+  catch (e) {
+    return handleException(e);
+  }
+}
+
 function stackCheckInit() {
   // This is normally called automatically during __wasm_call_ctors but need to
   // get these values before even running any of the ctors so we call it redundantly
@@ -8333,7 +8399,7 @@ function run() {
     readyPromiseResolve(Module);
     if (Module['onRuntimeInitialized']) Module['onRuntimeInitialized']();
 
-    assert(!Module['_main'], 'compiled without a main, but one is present. if you added it from JS, use Module["onRuntimeInitialized"]');
+    // assert(!Module['_main'], 'compiled without a main, but one is present. if you added it from JS, use Module["onRuntimeInitialized"]');
 
     postRun();
   }
