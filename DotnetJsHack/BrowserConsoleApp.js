@@ -4361,6 +4361,12 @@ var ASM_CONSTS = {
   }
   }
 
+  /** @type {function(...*):?} */
+  function _mono_wasm_invoke_bound_function(
+  ) {
+  err('missing function: mono_wasm_invoke_bound_function'); abort(-1);
+  }
+
   function _proc_exit(code) {
       EXITSTATUS = code;
       if (!keepRuntimeAlive()) {
@@ -4593,7 +4599,8 @@ var asmLibraryArg = {
   "fd_pread": _fd_pread,
   "fd_read": _fd_read,
   "fd_seek": _fd_seek,
-  "fd_write": _fd_write
+  "fd_write": _fd_write,
+  "mono_wasm_invoke_bound_function": _mono_wasm_invoke_bound_function
 };
 var asm = createWasm();
 /** @type {function(...*):?} */
@@ -4660,7 +4667,7 @@ var stackRestore = Module["stackRestore"] = createExportWrapper("stackRestore");
 /** @type {function(...*):?} */
 var stackAlloc = Module["stackAlloc"] = createExportWrapper("stackAlloc");
 
-var ___Module__DATA = Module['___Module__DATA'] = 673000;
+var ___Module__DATA = Module['___Module__DATA'] = 672992;
 
 
 

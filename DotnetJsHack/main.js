@@ -10,4 +10,5 @@ dotnet.withConfig({
         wasmNative: { "BrowserConsoleApp.wasm": "" }
     }
 });
-await dotnet.run();
+var result = await dotnet.run();
+console.log(`Exit code ${result}`);
