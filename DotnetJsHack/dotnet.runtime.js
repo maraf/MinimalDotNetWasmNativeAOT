@@ -4461,9 +4461,9 @@ function set_thread_info(pthread_ptr, isAttached, hasInterop, hasSynchronization
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 const fn_wrapper_by_fn_handle = [null]; // 0th slot is dummy, main thread we free them on shutdown. On web worker thread we free them when worker is detached.
-function mono_wasm_bind_js_function(function_name, module_name, signature, function_js_handle, is_exception, result_address) {
+function mono_wasm_bind_js_function(function_name, module_name, signature, function_js_handle, is_exception) {
     assert_bindings();
-    const function_name_root = mono_wasm_new_external_root(function_name), module_name_root = mono_wasm_new_external_root(module_name), resultRoot = mono_wasm_new_external_root(result_address);
+    const function_name_root = mono_wasm_new_external_root(function_name), module_name_root = mono_wasm_new_external_root(module_name);
     try {
         const version = get_signature_version(signature);
         if (!(version === 2)) mono_assert(false, `Signature version ${version} mismatch.`); // inlined mono_assert condition
@@ -4541,16 +4541,16 @@ function mono_wasm_bind_js_function(function_name, module_name, signature, funct
         const fn_handle = fn_wrapper_by_fn_handle.length;
         fn_wrapper_by_fn_handle.push(bound_fn);
         setI32(function_js_handle, fn_handle);
-        wrap_no_error_root(is_exception, resultRoot);
+        // wrap_no_error_root(is_exception, resultRoot);
         endMeasure(mark, "mono.bindJsFunction:" /* MeasuredBlock.bindJsFunction */, js_function_name);
     }
     catch (ex) {
         setI32(function_js_handle, 0);
         Module.err(ex.toString());
-        wrap_error_root(is_exception, ex, resultRoot);
+        // wrap_error_root(is_exception, ex, resultRoot);
     }
     finally {
-        resultRoot.release();
+        // resultRoot.release();
         function_name_root.release();
     }
 }

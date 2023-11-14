@@ -10,5 +10,19 @@ dotnet.withConfig({
         wasmNative: { "BrowserConsoleApp.wasm": "" }
     }
 });
+
+const { setModuleImports, getAssemblyExports, getConfig } = await dotnet.create()
+
+setModuleImports('main.mjs', {
+    node: {
+        process: {
+            version: () => globalThis.process.version
+        }
+    },
+    interop: {
+        getAnswer: () => 42
+    }
+});
+
 var result = await dotnet.run();
 console.log(`Exit code ${result}`);
