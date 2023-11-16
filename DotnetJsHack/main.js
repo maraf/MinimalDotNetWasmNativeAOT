@@ -13,14 +13,11 @@ dotnet.withConfig({
 
 const { setModuleImports, getAssemblyExports, getConfig } = await dotnet.create()
 
-setModuleImports('main.mjs', {
-    node: {
-        process: {
-            version: () => globalThis.process.version
-        }
-    },
+setModuleImports('main.js', {
     interop: {
-        getAnswer: () => 42
+        getAnswer: () => 42,
+        math: (a, b, c) => a + b * c,
+        greet: name => `Hello, ${name}`
     }
 });
 

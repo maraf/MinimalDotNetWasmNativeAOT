@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishTrimmed>true</PublishTrimmed>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseAppHost>false</UseAppHost>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+    
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TrimMode>full</TrimMode>
+    <!-- <DebuggerSupport>false</DebuggerSupport> -->
+    <EventSourceSupport>false</EventSourceSupport>
+    <StackTraceSupport>false</StackTraceSupport>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-preview.7.23503.1" />
+    <PackageReference Include="runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-preview.7.23503.1" />
+  </ItemGroup>
+
+  <!-- For simplicity, publish on build -->
+  <Target Name="RunAotBuild" AfterTargets="Build" DependsOnTargets="Publish" />
+
+</Project>

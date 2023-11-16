@@ -4461,18 +4461,22 @@ function set_thread_info(pthread_ptr, isAttached, hasInterop, hasSynchronization
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 const fn_wrapper_by_fn_handle = [null]; // 0th slot is dummy, main thread we free them on shutdown. On web worker thread we free them when worker is detached.
-function mono_wasm_bind_js_function(function_name, module_name, signature, function_js_handle, is_exception) {
+export function mono_wasm_bind_js_function(function_name, function_name_length, module_name, module_name_length, signature, function_js_handle, is_exception) {
     assert_bindings();
-    const function_name_root = mono_wasm_new_external_root(function_name), module_name_root = mono_wasm_new_external_root(module_name);
+    const function_name_root = mono_wasm_new_external_root(function_name),
+        module_name_root = mono_wasm_new_external_root(module_name);
     try {
         const version = get_signature_version(signature);
-        if (!(version === 2)) mono_assert(false, `Signature version ${version} mismatch.`); // inlined mono_assert condition
-        const js_function_name = monoStringToString(function_name_root);
+        mono_assert(version === 1, () => `Signature version ${version} mismatch.`);
+
+        const js_function_name = UTF8ToString(function_name_root.address, function_name_length);
         const mark = startMeasure();
-        const js_module_name = monoStringToString(module_name_root);
+        const js_module_name = UTF8ToString(module_name_root.address, module_name_length);
         mono_log_debug(`Binding [JSImport] ${js_function_name} from ${js_module_name} module`);
+
         const fn = mono_wasm_lookup_function(js_function_name, js_module_name);
         const args_count = get_signature_argument_count(signature);
+
         const arg_marshalers = new Array(args_count);
         const arg_cleanup = new Array(args_count);
         let has_cleanup = false;
@@ -4480,7 +4484,7 @@ function mono_wasm_bind_js_function(function_name, module_name, signature, funct
             const sig = get_sig(signature, index + 2);
             const marshaler_type = get_signature_type(sig);
             const arg_marshaler = bind_arg_marshal_to_js(sig, marshaler_type, index + 2);
-            if (!(arg_marshaler)) mono_assert(false, "ERR42: argument marshaler must be resolved"); // inlined mono_assert condition
+            mono_assert(arg_marshaler, "ERR42: argument marshaler must be resolved");
             arg_marshalers[index] = arg_marshaler;
             if (marshaler_type === MarshalerType.Span) {
                 arg_cleanup[index] = (js_arg) => {
@@ -4500,6 +4504,7 @@ function mono_wasm_bind_js_function(function_name, module_name, signature, funct
             assert_synchronization_context();
         }
         const res_converter = bind_arg_marshal_to_cs(res_sig, res_marshaler_type, 1);
+
         const closure = {
             fn,
             fqn: js_module_name + ":" + js_function_name,
@@ -4512,20 +4517,21 @@ function mono_wasm_bind_js_function(function_name, module_name, signature, funct
         };
         let bound_fn;
         if (args_count == 0 && !res_converter) {
-            bound_fn = bind_fn_0V$1(closure);
+            bound_fn = bind_fn_0V(closure);
         }
         else if (args_count == 1 && !has_cleanup && !res_converter) {
-            bound_fn = bind_fn_1V$1(closure);
+            bound_fn = bind_fn_1V(closure);
         }
         else if (args_count == 1 && !has_cleanup && res_converter) {
-            bound_fn = bind_fn_1R$1(closure);
+            bound_fn = bind_fn_1R(closure);
         }
         else if (args_count == 2 && !has_cleanup && res_converter) {
-            bound_fn = bind_fn_2R$1(closure);
+            bound_fn = bind_fn_2R(closure);
         }
         else {
-            bound_fn = bind_fn$1(closure);
+            bound_fn = bind_fn(closure);
         }
+
         // this is just to make debugging easier. 
         // It's not CSP compliant and possibly not performant, that's why it's only enabled in debug builds
         // in Release configuration, it would be a trimmed by rollup
@@ -4537,20 +4543,16 @@ function mono_wasm_bind_js_function(function_name, module_name, signature, funct
                 runtimeHelpers.cspPolicy = true;
             }
         }
+
         bound_fn[imported_js_function_symbol] = closure;
         const fn_handle = fn_wrapper_by_fn_handle.length;
         fn_wrapper_by_fn_handle.push(bound_fn);
         setI32(function_js_handle, fn_handle);
-        // wrap_no_error_root(is_exception, resultRoot);
         endMeasure(mark, "mono.bindJsFunction:" /* MeasuredBlock.bindJsFunction */, js_function_name);
-    }
-    catch (ex) {
+    } catch (ex) {
         setI32(function_js_handle, 0);
         Module.err(ex.toString());
-        // wrap_error_root(is_exception, ex, resultRoot);
-    }
-    finally {
-        // resultRoot.release();
+    } finally {
         function_name_root.release();
     }
 }
@@ -5094,33 +5096,41 @@ function bind_fn(closure) {
     const args_count = closure.args_count;
     const arg_marshalers = closure.arg_marshalers;
     const res_converter = closure.res_converter;
-    const method = closure.method;
+    const arg_cleanup = closure.arg_cleanup;
+    const has_cleanup = closure.has_cleanup;
+    const fn = closure.fn;
     const fqn = closure.fqn;
-    if (!MonoWasmThreads)
-        closure = null;
-    return function bound_fn(...js_args) {
+    if (!MonoWasmThreads) (closure) = null;
+    return function bound_fn(args) {
         const mark = startMeasure();
-        loaderHelpers.assert_runtime_running();
-        if (!(!MonoWasmThreads || !closure.isDisposed)) mono_assert(false, "The function was already disposed"); // inlined mono_assert condition
-        const sp = Module.stackSave();
         try {
-            const args = alloc_stack_frame(2 + args_count);
+            mono_assert(!MonoWasmThreads || !closure.isDisposed, "The function was already disposed");
+            const js_args = new Array(args_count);
             for (let index = 0; index < args_count; index++) {
                 const marshaler = arg_marshalers[index];
-                if (marshaler) {
-                    const js_arg = js_args[index];
-                    marshaler(args, js_arg);
+                const js_arg = marshaler(args);
+                js_args[index] = js_arg;
+            }
+
+            // call user function
+            const js_result = fn(...js_args);
+
+            if (res_converter) {
+                res_converter(args, js_result);
+            }
+
+            if (has_cleanup) {
+                for (let index = 0; index < args_count; index++) {
+                    const cleanup = arg_cleanup[index];
+                    if (cleanup) {
+                        cleanup(js_args[index]);
+                    }
                 }
             }
-            // call C# side
-            invoke_method_and_handle_exception(method, args);
-            if (res_converter) {
-                const js_result = res_converter(args);
-                return js_result;
-            }
+        } catch (ex) {
+            marshal_exception_to_cs(args, ex);
         }
         finally {
-            Module.stackRestore(sp);
             endMeasure(mark, "mono.callCsFunction:" /* MeasuredBlock.callCsFunction */, fqn);
         }
     };
@@ -18580,13 +18590,13 @@ function bindings_init() {
     runtimeHelpers.mono_wasm_bindings_is_ready = true;
     try {
         // const mark = startMeasure();
-        // strings_init();
+        strings_init();
         // init_managed_exports();
         // if (WasmEnableLegacyJsInterop && !linkerDisableLegacyJsInterop && !ENVIRONMENT_IS_PTHREAD) {
         //     init_legacy_exports();
         // }
-        // initialize_marshalers_to_js();
-        // initialize_marshalers_to_cs();
+        initialize_marshalers_to_js();
+        initialize_marshalers_to_cs();
         // runtimeHelpers._i52_error_scratch_buffer = Module._malloc(4);
         // endMeasure(mark, "mono.bindingsInit" /* MeasuredBlock.bindingsInit */);
     }
@@ -18806,3 +18816,52 @@ class RuntimeList {
 
 export { configureEmscriptenStartup, configureRuntimeStartup, configureWorkerStartup, initializeExports, initializeReplacements, passEmscriptenInternals, setRuntimeGlobals };
 //# sourceMappingURL=dotnet.runtime.js.map
+
+
+var UTF8Decoder = typeof TextDecoder != 'undefined' ? new TextDecoder('utf8') : undefined;
+
+function UTF8ArrayToString(heapOrArray, idx, maxBytesToRead) {
+    var endIdx = idx + maxBytesToRead;
+    var endPtr = idx;
+    // TextDecoder needs to know the byte length in advance, it doesn't stop on
+    // null terminator by itself.  Also, use the length info to avoid running tiny
+    // strings through TextDecoder, since .subarray() allocates garbage.
+    // (As a tiny code save trick, compare endPtr against endIdx using a negation,
+    // so that undefined means Infinity)
+    while (heapOrArray[endPtr] && !(endPtr >= endIdx)) ++endPtr;
+  
+    if (endPtr - idx > 16 && heapOrArray.buffer && UTF8Decoder) {
+      return UTF8Decoder.decode(heapOrArray.subarray(idx, endPtr));
+    }
+    var str = '';
+    // If building with TextDecoder, we have already computed the string length
+    // above, so test loop end condition against that
+    while (idx < endPtr) {
+      // For UTF8 byte structure, see:
+      // http://en.wikipedia.org/wiki/UTF-8#Description
+      // https://www.ietf.org/rfc/rfc2279.txt
+      // https://tools.ietf.org/html/rfc3629
+      var u0 = heapOrArray[idx++];
+      if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue; }
+      var u1 = heapOrArray[idx++] & 63;
+      if ((u0 & 0xE0) == 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue; }
+      var u2 = heapOrArray[idx++] & 63;
+      if ((u0 & 0xF0) == 0xE0) {
+        u0 = ((u0 & 15) << 12) | (u1 << 6) | u2;
+      } else {
+        if ((u0 & 0xF8) != 0xF0) warnOnce('Invalid UTF-8 leading byte ' + ptrToString(u0) + ' encountered when deserializing a UTF-8 string in wasm memory to a JS string!');
+        u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
+      }
+  
+      if (u0 < 0x10000) {
+        str += String.fromCharCode(u0);
+      } else {
+        var ch = u0 - 0x10000;
+        str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF));
+      }
+    }
+    return str;
+  }
+  function UTF8ToString(ptr, maxBytesToRead) {
+    return ptr ? UTF8ArrayToString(localHeapViewU8(), ptr, maxBytesToRead) : '';
+  }
