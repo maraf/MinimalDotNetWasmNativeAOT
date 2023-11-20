@@ -5326,6 +5326,12 @@ var ASM_CONSTS = {
   }
 
   /** @type {function(...*):?} */
+  function _mono_wasm_bind_cs_function(
+  ) {
+  err('missing function: mono_wasm_bind_cs_function'); abort(-1);
+  }
+
+  /** @type {function(...*):?} */
   function _mono_wasm_bind_js_function(
   ) {
   err('missing function: mono_wasm_bind_js_function'); abort(-1);
@@ -5902,6 +5908,7 @@ var asmLibraryArg = {
   "fd_read": _fd_read,
   "fd_seek": _fd_seek,
   "fd_write": _fd_write,
+  "mono_wasm_bind_cs_function": _mono_wasm_bind_cs_function,
   "mono_wasm_bind_js_function": _mono_wasm_bind_js_function,
   "mono_wasm_invoke_import": _mono_wasm_invoke_import,
   "strftime": _strftime
@@ -5918,6 +5925,15 @@ var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 
 /** @type {function(...*):?} */
 var ___errno_location = Module["___errno_location"] = createExportWrapper("__errno_location");
+
+/** @type {function(...*):?} */
+var ___Register_BrowserConsoleApp = Module["___Register_BrowserConsoleApp"] = createExportWrapper("__Register_BrowserConsoleApp");
+
+/** @type {function(...*):?} */
+var ___Wrapper_Greeting = Module["___Wrapper_Greeting"] = createExportWrapper("__Wrapper_Greeting");
+
+/** @type {function(...*):?} */
+var _BrowserConsoleApp_MyClass_GetAnswer2 = Module["_BrowserConsoleApp_MyClass_GetAnswer2"] = createExportWrapper("BrowserConsoleApp_MyClass_GetAnswer2");
 
 /** @type {function(...*):?} */
 var _fflush = Module["_fflush"] = createExportWrapper("fflush");
@@ -5971,7 +5987,7 @@ var stackRestore = Module["stackRestore"] = createExportWrapper("stackRestore");
 /** @type {function(...*):?} */
 var stackAlloc = Module["stackAlloc"] = createExportWrapper("stackAlloc");
 
-var ___Module__DATA = Module['___Module__DATA'] = 676460;
+var ___Module__DATA = Module['___Module__DATA'] = 676924;
 
 
 

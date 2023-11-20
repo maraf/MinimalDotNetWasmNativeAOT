@@ -9,22 +9,15 @@ Console.WriteLine($"Answer is '{MyClass.GetAnswer()}'");
 Console.WriteLine($"Math result is '{MyClass.Math(1, 2, 3)}'");
 Console.WriteLine($"Greet response is '{MyClass.Greet("Jon")}'");
 
-// await Task.Delay(5 * 1000);
-
-// unsafe
-// {
-//     Interop.InvokeImport(IntPtr.Zero, null);
-// }
-
 return 42;
 
 public partial class MyClass
 {
     [JSExport]
-    internal static string Greeting()
+    internal static int Greeting()
     {
-        var text = $"Hello, World! The answer is {GetAnswer()}";
-        return text;
+        Console.WriteLine($"Hello, World! The answer is {GetAnswer()}");
+        return 44;
     }
 
     [JSImport("interop.getAnswer", "main.js")]
@@ -35,6 +28,9 @@ public partial class MyClass
 
     [JSImport("interop.greet", "main.js")]
     internal static partial string Greet(string name);
+
+    [UnmanagedCallersOnly(EntryPoint = "BrowserConsoleApp_MyClass_GetAnswer2")]
+    internal static int GetAnswer2() => 42;
 }
 
 // namespace System.Runtime.InteropServices.JavaScript

@@ -7633,6 +7633,12 @@ var _main = Module["_main"] = createExportWrapper("__main_argc_argv");
 /** @type {function(...*):?} */
 var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 /** @type {function(...*):?} */
+var _BrowserConsoleApp_MyClass_GetAnswer2 = Module["_BrowserConsoleApp_MyClass_GetAnswer2"] = createExportWrapper("BrowserConsoleApp_MyClass_GetAnswer2");
+/** @type {function(...*):?} */
+var ___Register_BrowserConsoleApp = Module["___Register_BrowserConsoleApp"] = createExportWrapper("__Register_BrowserConsoleApp");
+/** @type {function(...*):?} */
+var ___Wrapper_Greeting = Module["___Wrapper_Greeting"] = createExportWrapper("__Wrapper_Greeting");
+/** @type {function(...*):?} */
 var _mono_wasm_setenv = Module["_mono_wasm_setenv"] = createExportWrapper("mono_wasm_setenv");
 /** @type {function(...*):?} */
 var _mono_wasm_getenv = Module["_mono_wasm_getenv"] = createExportWrapper("mono_wasm_getenv");
