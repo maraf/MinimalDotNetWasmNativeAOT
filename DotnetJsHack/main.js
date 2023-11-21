@@ -11,7 +11,7 @@ dotnet.withConfig({
     }
 });
 
-const { setModuleImports, getAssemblyExports, getConfig } = await dotnet.create()
+const { setModuleImports, getAssemblyExports, getConfig } = await dotnet.withApplicationArguments("A", "B", "C").create()
 
 setModuleImports('main.js', {
     interop: {
