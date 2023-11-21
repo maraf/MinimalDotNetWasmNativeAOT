@@ -2279,8 +2279,7 @@ class HostBuilder {
                 await this.create();
             }
             // if (!(emscriptenModule.config.mainAssemblyName)) mono_assert(false, "Null moduleConfig.config.mainAssemblyName"); // inlined mono_assert condition
-            // return this.instance.runMainAndExit(emscriptenModule.config.mainAssemblyName);
-            emscriptenModule["callMain"](monoConfig.applicationArguments);
+            return this.instance.runMainAndExit(emscriptenModule.config.mainAssemblyName);
         }
         catch (err) {
             mono_exit(1, err);

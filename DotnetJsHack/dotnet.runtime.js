@@ -15997,13 +15997,25 @@ async function mono_run_main(main_assembly_name, args) {
             args = [];
         }
     }
-    mono_wasm_set_main_args(main_assembly_name, args);
-    if (runtimeHelpers.waitForDebugger == -1) {
-        mono_log_info("waiting for debugger...");
-        await mono_wasm_wait_for_debugger();
-    }
-    const method = find_entry_point(main_assembly_name);
-    return runtimeHelpers.javaScriptExports.call_entry_point(method, args);
+    // mono_wasm_set_main_args(main_assembly_name, args);
+    // if (runtimeHelpers.waitForDebugger == -1) {
+    //     mono_log_info("waiting for debugger...");
+    //     await mono_wasm_wait_for_debugger();
+    // }
+    // const method = find_entry_point(main_assembly_name);
+    // return runtimeHelpers.javaScriptExports.call_entry_point(method, args);
+
+    args.unshift("./this.program");
+
+    var argc = args.length;
+    var argv = Module.stackAlloc((argc + 1) * 4);
+    var argv_ptr = argv >> 2;
+    args.forEach((arg) => {
+        Module.HEAP32[argv_ptr++] = allocateUTF8OnStack(arg);
+    });
+    Module.HEAP32[argv_ptr] = 0;
+
+    return Module["_main"](argc, argv);
 }
 function find_entry_point(assembly) {
     loaderHelpers.assert_runtime_running();
@@ -18918,3 +18930,10 @@ function lengthBytesUTF8(str) {
   }
   return len;
 }
+
+function allocateUTF8OnStack(str) {
+    var size = lengthBytesUTF8(str) + 1;
+    var ret = Module.stackAlloc(size);
+    Module.stringToUTF8Array(str, localHeapViewU8(), ret, size);
+    return ret;
+  }

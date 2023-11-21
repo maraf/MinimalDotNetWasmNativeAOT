@@ -24,15 +24,14 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
     <CustomNativeMain>true</CustomNativeMain>
+    <IlcExportUnmanagedEntrypoints>true</IlcExportUnmanagedEntrypoints>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-preview.7.23503.1" />
     <PackageReference Include="runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-preview.7.23503.1" />
 
-    <CustomLinkerArg Include="-Wl,--export,BrowserConsoleApp_MyClass_GetAnswer2" />
-    <CustomLinkerArg Include="-Wl,--export,__Register_BrowserConsoleApp" />
-    <CustomLinkerArg Include="-Wl,--export,__Wrapper_Greeting" />
+    <CustomLinkerArg Include="-Wl,--export,__main_argc_argv" />
     <CustomLinkerArg Include="&quot;CustomMainNative.cpp&quot;" />
   </ItemGroup>
 

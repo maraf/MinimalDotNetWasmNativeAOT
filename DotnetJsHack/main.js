@@ -25,4 +25,4 @@ const exports = await getAssemblyExports('BrowserConsoleApp.dll');
 console.log(`The result of Greeting is ${exports.MyClass.Greeting()}`);
 
 var result = await dotnet.run();
-console.log(`Exit code ${result}`);console.log(`Exit code ${result}`);
+console.log(`Exit code ${result}`);
