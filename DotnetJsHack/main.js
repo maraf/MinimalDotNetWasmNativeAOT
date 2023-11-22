@@ -9,9 +9,9 @@ dotnet.withConfig({
         jsModuleRuntime: { "dotnet.runtime.js": "" },
         wasmNative: { "BrowserConsoleApp.wasm": "" }
     }
-});
+}).withApplicationArguments("A", "B", "C");
 
-const { setModuleImports, getAssemblyExports, getConfig } = await dotnet.withApplicationArguments("A", "B", "C").create()
+const { setModuleImports, getAssemblyExports, runMain, getConfig } = await dotnet.create();
 
 setModuleImports('main.js', {
     interop: {
@@ -22,7 +22,7 @@ setModuleImports('main.js', {
 });
 
 const exports = await getAssemblyExports('BrowserConsoleApp.dll');
-console.log(`The result of Greeting is ${exports.MyClass.Greeting()}`);
+console.log(`The result of Greeting is ${exports.Xyz.Interop.MyClass.Greeting()}`);
 
-var result = await dotnet.run();
+var result = await runMain(getConfig().mainAssemblyName);
 console.log(`Exit code ${result}`);

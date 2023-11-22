@@ -12,30 +12,37 @@ foreach (var arg in args)
 
 // await Task.Delay(10);
 
-Console.WriteLine($"Answer is '{MyClass.GetAnswer()}'");
-Console.WriteLine($"Math result is '{MyClass.Math(1, 2, 3)}'");
-Console.WriteLine($"Greet response is '{MyClass.Greet("Jon")}'");
+Console.WriteLine($"Answer is '{Xyz.Interop.MyClass.GetAnswer()}'");
+Console.WriteLine($"Math result is '{Xyz.Interop.MyClass.Math(1, 2, 3)}'");
+Console.WriteLine($"Greet response is '{Xyz.Interop.MyClass.Greet("Jon")}'");
 
 return 0;
 
-public partial class MyClass
+
+namespace Xyz
 {
-    [JSExport]
-    internal static int Greeting()
+    public partial class Interop
     {
-        Console.WriteLine($"Hello, World! The answer is {GetAnswer()}");
-        return 44;
+        public partial class MyClass
+        {
+            [JSExport]
+            internal static int Greeting()
+            {
+                Console.WriteLine($"Hello, World! The answer is {GetAnswer()}");
+                return 44;
+            }
+
+            [JSImport("interop.getAnswer", "main.js")]
+            internal static partial int GetAnswer();
+
+            [JSImport("interop.math", "main.js")]
+            internal static partial int Math(int a, int b, int c);
+
+            [JSImport("interop.greet", "main.js")]
+            internal static partial string Greet(string name);
+
+            [UnmanagedCallersOnly(EntryPoint = "BrowserConsoleApp_MyClass_GetAnswer2")]
+            internal static int GetAnswer2() => 42;
+        }
     }
-
-    [JSImport("interop.getAnswer", "main.js")]
-    internal static partial int GetAnswer();
-
-    [JSImport("interop.math", "main.js")]
-    internal static partial int Math(int a, int b, int c);
-
-    [JSImport("interop.greet", "main.js")]
-    internal static partial string Greet(string name);
-
-    [UnmanagedCallersOnly(EntryPoint = "BrowserConsoleApp_MyClass_GetAnswer2")]
-    internal static int GetAnswer2() => 42;
 }

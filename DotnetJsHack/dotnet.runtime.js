@@ -4936,7 +4936,7 @@ function mono_wasm_bind_cs_function(fully_qualified_name, fully_qualified_name_l
         // if (!klass)
         //     throw new Error("Could not find class: " + namespace + ":" + classname + " in assembly " + assembly);
 
-        const wrapper_name = `__Wrapper_${methodname}`; // TODO MF: Hash _${signature_hash}`;
+        const wrapper_name = fixupSymbolName(js_fqn); // TODO MF: Hash _${signature_hash}`;
         // const method = cwraps.mono_wasm_assembly_find_method(klass, wrapper_name, -1);
         const method = Module["_" + wrapper_name];
         if (!method)
@@ -5013,6 +5013,28 @@ function mono_wasm_bind_cs_function(fully_qualified_name, fully_qualified_name_l
         fqn_root.release();
     }
 }
+
+const s_charsToReplace = ['.', '-', '+'];
+
+function fixupSymbolName(name) {
+    let result = "";
+    for (let index = 0; index < name.length; index++) {
+        const b = name[index];
+        if ((b >= '0' && b <= '9') ||
+            (b >= 'a' && b <= 'z') ||
+            (b >= 'A' && b <= 'Z') ||
+            (b == '_')) {
+            result += b;
+        } else if( s_charsToReplace.includes(b)) {
+            result += "_";
+        } else {
+            result += `_${b.charCodeAt(0).toString(16).toUpperCase()}_`;
+        }
+    }
+
+    return result;
+}
+
 function bind_fn_0V(closure) {
     const method = closure.method;
     const fqn = closure.fqn;
@@ -5227,7 +5249,10 @@ async function mono_wasm_get_assembly_exports(assembly) {
         //     // it doesn't have the __GeneratedInitializer class
         //     cwraps.mono_wasm_runtime_run_module_cctor(asm);
         // }
-        Module["___Register_" + assembly]();
+        const register = Module["_" + assembly + "__GeneratedInitializer" + "__Register_"];
+        if (!register)
+            mono_assert(`Missing wasm export for JSExport registration function in assembly ${assembly}`);
+        register();
         endMeasure(mark, "mono.getAssemblyExports:" /* MeasuredBlock.getAssemblyExports */, assembly);
     }
     return exportsByAssembly.get(assembly) || {};
