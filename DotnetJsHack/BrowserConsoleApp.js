@@ -5927,7 +5927,7 @@ var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 var ___errno_location = Module["___errno_location"] = createExportWrapper("__errno_location");
 
 /** @type {function(...*):?} */
-var __5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_490867262 = Module["__5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_490867262"] = createExportWrapper("_5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_490867262");
+var __5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_1575067814 = Module["__5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_1575067814"] = createExportWrapper("_5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_1575067814");
 
 /** @type {function(...*):?} */
 var _BrowserConsoleApp_MyClass_GetAnswer2 = Module["_BrowserConsoleApp_MyClass_GetAnswer2"] = createExportWrapper("BrowserConsoleApp_MyClass_GetAnswer2");
@@ -5987,7 +5987,7 @@ var stackRestore = Module["stackRestore"] = createExportWrapper("stackRestore");
 /** @type {function(...*):?} */
 var stackAlloc = Module["stackAlloc"] = createExportWrapper("stackAlloc");
 
-var ___Module__DATA = Module['___Module__DATA'] = 677092;
+var ___Module__DATA = Module['___Module__DATA'] = 682484;
 
 
 

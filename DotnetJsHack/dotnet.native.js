@@ -7633,7 +7633,7 @@ var _main = Module["_main"] = createExportWrapper("__main_argc_argv");
 /** @type {function(...*):?} */
 var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 /** @type {function(...*):?} */
-var __5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_490867262 = Module["__5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_490867262"] = createExportWrapper("_5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_490867262");
+var __5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_1575067814 = Module["__5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_1575067814"] = createExportWrapper("_5B_BrowserConsoleApp_5D_Xyz_Interop_2F_MyClass_3A_Greeting_1575067814");
 /** @type {function(...*):?} */
 var _BrowserConsoleApp_MyClass_GetAnswer2 = Module["_BrowserConsoleApp_MyClass_GetAnswer2"] = createExportWrapper("BrowserConsoleApp_MyClass_GetAnswer2");
 /** @type {function(...*):?} */

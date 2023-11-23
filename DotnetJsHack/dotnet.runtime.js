@@ -4466,15 +4466,13 @@ function set_thread_info(pthread_ptr, isAttached, hasInterop, hasSynchronization
 const fn_wrapper_by_fn_handle = [null]; // 0th slot is dummy, main thread we free them on shutdown. On web worker thread we free them when worker is detached.
 export function mono_wasm_bind_js_function(function_name, function_name_length, module_name, module_name_length, signature, function_js_handle, is_exception) {
     assert_bindings();
-    const function_name_root = mono_wasm_new_external_root(function_name),
-        module_name_root = mono_wasm_new_external_root(module_name);
     try {
         const version = get_signature_version(signature);
         mono_assert(version === 1, () => `Signature version ${version} mismatch.`);
 
-        const js_function_name = UTF8ToString(function_name_root.address, function_name_length);
+        const js_function_name = UTF8ToString(function_name, function_name_length);
         const mark = startMeasure();
-        const js_module_name = UTF8ToString(module_name_root.address, module_name_length);
+        const js_module_name = UTF8ToString(module_name, module_name_length);
         mono_log_debug(`Binding [JSImport] ${js_function_name} from ${js_module_name} module`);
 
         const fn = mono_wasm_lookup_function(js_function_name, js_module_name);
@@ -4552,11 +4550,11 @@ export function mono_wasm_bind_js_function(function_name, function_name_length, 
         fn_wrapper_by_fn_handle.push(bound_fn);
         setI32(function_js_handle, fn_handle);
         endMeasure(mark, "mono.bindJsFunction:" /* MeasuredBlock.bindJsFunction */, js_function_name);
+        wrap_error(is_exception);
     } catch (ex) {
         setI32(function_js_handle, 0);
         Module.err(ex.toString());
-    } finally {
-        function_name_root.release();
+        wrap_error(is_exception, ex);
     }
 }
 function bind_fn_0V$1(closure) {
@@ -4798,6 +4796,16 @@ function _wrap_error_flag(is_exception, ex) {
     }
     return res;
 }
+function wrap_error(is_exception, ex) {
+    if (ex) {
+        _wrap_error_flag(is_exception, ex);
+    } else {
+        if (is_exception) {
+            receiveWorkerHeapViews();
+            setI32_unchecked(is_exception, 0);
+        }
+    }
+}
 function wrap_error_root(is_exception, ex, result) {
     const res = _wrap_error_flag(is_exception, ex);
     stringToMonoStringRoot(res, result);
@@ -4912,36 +4920,23 @@ function find_type_in_assembly(assembly_name, namespace, name) {
 // The .NET Foundation licenses this file to you under the MIT license.
 function mono_wasm_bind_cs_function(fully_qualified_name, fully_qualified_name_length, signature_hash, signature, is_exception) {
     assert_bindings();
-    const fqn_root = mono_wasm_new_external_root(fully_qualified_name);
     const mark = startMeasure();
     try {
         const version = get_signature_version(signature);
         mono_assert(version === 1, () => `Signature version ${version} mismatch.`);
 
         const args_count = get_signature_argument_count(signature);
-        const js_fqn = UTF8ToString(fqn_root.address, fully_qualified_name_length);
+        const js_fqn = UTF8ToString(fully_qualified_name, fully_qualified_name_length);
         mono_assert(js_fqn, "fully_qualified_name must be string");
 
         mono_log_debug(`Binding [JSExport] ${js_fqn}`);
 
         const { assembly, namespace, classname, methodname } = parseFQN(js_fqn);
         
-        // TODO MF: Replace reflection with WASM Export
-
-        // const asm = assembly_load(assembly);
-        // if (!asm)
-        //     throw new Error("Could not find assembly: " + assembly);
-
-        // const klass = cwraps.mono_wasm_assembly_find_class(asm, namespace, classname);
-        // if (!klass)
-        //     throw new Error("Could not find class: " + namespace + ":" + classname + " in assembly " + assembly);
-
         const wrapper_name = fixupSymbolName(`${js_fqn}_${signature_hash}`);
-        // const method = cwraps.mono_wasm_assembly_find_method(klass, wrapper_name, -1);
         const method = Module["_" + wrapper_name];
         if (!method)
             throw new Error(`Could not find method: ${wrapper_name} in ${js_fqn}`);
-
 
         const arg_marshalers = new Array(args_count);
         for (let index = 0; index < args_count; index++) {
@@ -5003,14 +4998,11 @@ function mono_wasm_bind_cs_function(fully_qualified_name, fully_qualified_name_l
 
         _walk_exports_to_set_function(assembly, namespace, classname, methodname, signature_hash, bound_fn);
         endMeasure(mark, "bindCsFunction", js_fqn);
-        // wrap_no_error_root(is_exception, resultRoot);
+        wrap_error(is_exception);
     }
     catch (ex) {
         Module.err(ex.toString());
-        // wrap_error_root(is_exception, ex, resultRoot);
-    } finally {
-        // resultRoot.release();
-        fqn_root.release();
+        wrap_error(is_exception, ex);
     }
 }
 
