@@ -24,6 +24,7 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
     <CustomNativeMain>true</CustomNativeMain>
+    <!-- <NativeLib>static</NativeLib> -->
     <IlcExportUnmanagedEntrypoints>true</IlcExportUnmanagedEntrypoints>
   </PropertyGroup>
 
