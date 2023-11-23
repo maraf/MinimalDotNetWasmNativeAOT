@@ -4936,7 +4936,7 @@ function mono_wasm_bind_cs_function(fully_qualified_name, fully_qualified_name_l
         // if (!klass)
         //     throw new Error("Could not find class: " + namespace + ":" + classname + " in assembly " + assembly);
 
-        const wrapper_name = fixupSymbolName(js_fqn); // TODO MF: Hash _${signature_hash}`;
+        const wrapper_name = fixupSymbolName(`${js_fqn}_${signature_hash}`);
         // const method = cwraps.mono_wasm_assembly_find_method(klass, wrapper_name, -1);
         const method = Module["_" + wrapper_name];
         if (!method)
