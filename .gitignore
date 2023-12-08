@@ -2,4 +2,6 @@
 bin/
 obj/
 */.nuget/
+*/.nuget-back/
+*/.nuget-back2/
 msbuild.binlog

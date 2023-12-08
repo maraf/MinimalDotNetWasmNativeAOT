@@ -12,9 +12,9 @@ foreach (var arg in args)
 
 // await Task.Delay(10);
 
-Console.WriteLine($"Answer is '{Xyz.Interop.MyClass.GetAnswer()}'");
+// Console.WriteLine($"Answer is '{Xyz.Interop.MyClass.GetAnswer()}'");
 Console.WriteLine($"Math result is '{Xyz.Interop.MyClass.Math(1, 2, 3)}'");
-Console.WriteLine($"Greet response is '{Xyz.Interop.MyClass.Greet("Jon")}'");
+// Console.WriteLine($"Greet response is '{Xyz.Interop.MyClass.Greet("Jon")}'");
 
 return 0;
 

@@ -13,7 +13,7 @@ dotnet build -c Release -bl ..\BrowserConsoleApp\
 ## Copy output
 
 ```sh
-cp -r ..\BrowserConsoleApp\bin\Release\net8.0\browser-wasm\publish\*.* .\
+cp -r ..\BrowserConsoleApp\bin\Release\net9.0\browser-wasm\publish\*.* .\
 ```
 
 ## Run

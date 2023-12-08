@@ -5,9 +5,9 @@ import { dotnet, exit } from './dotnet.js'
 
 dotnet.withConfig({
     resources: {
-        jsModuleNative: { "dotnet.native.js": "" },
         jsModuleRuntime: { "dotnet.runtime.js": "" },
-        wasmNative: { "BrowserConsoleApp.wasm": "" }
+        jsModuleNative: { "dotnet.native.js": "" },
+        wasmNative: { "dotnet.native.wasm": "" }
     }
 }).withApplicationArguments("A", "B", "C");
 
@@ -21,8 +21,8 @@ setModuleImports('main.js', {
     }
 });
 
-const exports = await getAssemblyExports('BrowserConsoleApp.dll');
-console.log(`The result of Greeting is ${exports.Xyz.Interop.MyClass.Greeting()}`);
+// const exports = await getAssemblyExports('BrowserConsoleApp.dll');
+// console.log(`The result of Greeting is ${exports.Xyz.Interop.MyClass.Greeting()}`);
 
 var result = await runMain(getConfig().mainAssemblyName);
 console.log(`Exit code ${result}`);
